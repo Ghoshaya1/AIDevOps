@@ -36,7 +36,7 @@ So based on the project the reuqirement was to implement a method where i utilis
 5) For networking i have chosen calico because it supports multiple dataplane as opposed to cilium and has OOB support for istio and it has broad support for different kubernetes platform.
 6) The reason for choosing ansible is it can run in multiple OS without any significant issues.
 
-('To spin up the environment please run the script create.sh from the project root, and to spin down please execute destroy.sh')
+(`To spin up the environment please run the script create.sh from the project root, and to spin down please execute destroy.sh`)
  
 - Include a link to a Git repository containing your script or send the files as reponse to the email.
 
