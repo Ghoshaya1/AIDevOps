@@ -1,0 +1,46 @@
+---
+- name: Install kubectl and Helm on localhost
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Install kubectl on Ubuntu
+      apt:
+        name: kubectl
+        state: present
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Install Helm on Ubuntu
+      block:
+        - name: Download Helm installation script
+          get_url:
+            url: https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+            dest: /tmp/get_helm.sh
+            mode: '0755'
+
+        - name: Run Helm installation script
+          shell: /tmp/get_helm.sh
+          args:
+            creates: /usr/local/bin/helm
+          become: yes
+          become_user: root
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Install kubectl and Helm on macOS
+      block:
+        - name: Install Homebrew (macOS)
+          shell: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          args:
+            creates: /usr/local/bin/brew
+          when: ansible_system == 'Darwin'
+
+        - name: Install kubectl via Homebrew (macOS)
+          homebrew:
+            name: kubectl
+            state: present
+          when: ansible_system == 'Darwin'
+
+        - name: Install Helm via Homebrew (macOS)
+          homebrew:
+            name: helm
+            state: present
+          when: ansible_system == 'Darwin'

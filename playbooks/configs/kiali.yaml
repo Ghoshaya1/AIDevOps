@@ -1,0 +1,29 @@
+#  Kiali configuration
+#  See: https://kiali.io/docs/configuration/kialis.kiali.io/
+#
+
+cr:
+  create: true
+  namespace: istio-system
+  spec:
+    external_services:
+      prometheus:
+        url: http://prometheus-kube-prometheus-prometheus.default:9090
+      tracing:
+        in_cluster_url:
+          http://jaeger-query.monitoring:16685/jaeger
+      istio:
+        component_status:
+          components:
+          - app_label: "istiod"
+            is_core: true
+            is_proxy: false
+          - app_label: "istio-ingressgateway"
+            is_core: true
+            is_proxy: true
+            namespace: "istio-ingress"
+          - app_label: "istio-egressgateway"
+            is_core: false
+            is_proxy: true
+            namespace: istio-system
+          enabled: true

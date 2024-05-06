@@ -1,0 +1,18 @@
+---
+- name: Destroy Multipass VMs
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: List Multipass instances
+      command: multipass list --format csv
+      register: multipass_instances
+
+    - name: Extract VM names from Multipass instances
+      set_fact:
+        vm_names: "{{ multipass_instances.stdout_lines[1:] | map('regex_replace', '^([^,]+),.*$', '\\1') | list }}"
+
+    - name: Destroy Multipass VMs
+      command: multipass delete --purge {{ item }}
+      loop: "{{ vm_names }}"
+      when: item != 'controller'

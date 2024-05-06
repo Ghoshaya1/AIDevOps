@@ -1,0 +1,16 @@
+
+kube-node-0 ansible_ssh_host=
+kube-node-1 ansible_ssh_host=
+kube-node-2 ansible_ssh_host=
+
+[nodes]
+kube-node-1
+kube-node-2
+
+
+
+
+
+
+
+

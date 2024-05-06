@@ -1,0 +1,18 @@
+---
+- name: Deploy Kubernetes
+  hosts: localhost
+  become: yes
+  vars:
+    # Define variables specific to Kubernetes deployment
+    # kubernetes_version: "1.22.0"  # You can change this to the desired version ## Defined in vars
+    # Add more variables as needed
+
+  tasks:
+
+
+  roles:
+    - multipass_setup
+#    - kubernetes
+#    - name: aks_setup
+#      when: "'azure' in group_names"
+     

@@ -1,0 +1,39 @@
+- name: Install Multipass
+  become: yes
+  become_user: root
+  snap:
+    name: multipass
+    state: present
+
+- name: Launch VMs
+  shell: multipass launch -n {{ item }} --cpus 2 --mem 2G
+  loop:
+    - kube-node-0
+    - kube-node-1
+    - kube-node-2
+  
+
+- name: Wait for VMs to start
+  pause:
+    seconds: 10
+
+- name: Fetch Multipass VM IPs
+  shell: multipass list --format csv
+  register: multipass_list_output
+
+- name: Update Ansible inventory with VM IPs
+  lineinfile:
+    path: ../inventory
+    line: "{{ item.split(',')[0] }} ansible_ssh_host={{ item.split(',')[5].strip('\"') }}"
+    insertafter: "[multipass_vms]"
+  loop: "{{ multipass_list_output.stdout_lines[1:] }}"
+
+- name: Add SSH public key to VMs
+  shell: |
+    cat ../keys/multipass-ssh-key.pub | multipass transfer - {{ item }}:/tmp/key.pub
+    multipass exec {{ item }} -- bash -c 'LINE=$(cat /tmp/key.pub); DST=/home/ubuntu/.ssh/authorized_keys; grep -qF -- "${LINE}" "${DST}" || echo "${LINE}" >> "${DST}"'
+  loop:
+    - kube-node-0
+    - kube-node-1
+    - kube-node-2
+

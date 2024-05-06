@@ -1,0 +1,34 @@
+---
+- name: Kubernetes cluster create at node-0
+  hosts: kube-node-0
+  become: true
+  become_user: root
+  tasks:
+    - name: Initialize the Kubernetes cluster using kubeadm
+      ansible.builtin.command: |
+        kubeadm init --apiserver-advertise-address="{{ hostvars[inventory_hostname]['ansible_ssh_host'] }}" \
+                     --apiserver-cert-extra-sans="kube.cluster.home,{{ hostvars[inventory_hostname]['ansible_ssh_host'] }}" \
+                     --node-name {{ inventory_hostname }} \
+                     --pod-network-cidr=10.42.0.0/16
+      args:
+        creates: /etc/kubernetes/pki/etcd/server.key
+      register: kubeadm_init_control
+
+    - name: Print return information from the previous task
+      ansible.builtin.debug:
+        var: kubeadm_init_control
+        verbosity: 0
+
+    - name: Setup kube config for ubuntu user
+      ansible.builtin.command: "{{ item }}"
+      with_items:
+        - mkdir -p /home/ubuntu/.kube
+        - cp -f /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
+        - chown ubuntu:ubuntu /home/ubuntu/.kube
+        - chown ubuntu:ubuntu /home/ubuntu/.kube/config
+      changed_when: false
+    #  args:
+    #    creates: /home/ubuntu/.kube/config
+
+    # # # https://kubernetes.io/docs/concepts/cluster-administration/addons/#networking-and-network-policy
+    # # # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#pod-network

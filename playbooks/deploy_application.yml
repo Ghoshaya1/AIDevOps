@@ -1,0 +1,81 @@
+---
+- name: Deploy Helm charts and apply kubectl configs
+  hosts: localhost  # Run these tasks on the Kubernetes master node
+  become: true  # Run commands with elevated privileges if needed
+  tasks:
+    - name: Add Helm repositories
+      ansible.builtin.shell:
+        cmd: helm repo add {{ item.repo_name }} {{ item.repo_url }}
+      with_items:
+        - { repo_name: "istio", repo_url: "https://istio-release.storage.googleapis.com/charts" }
+        - { repo_name: "kiali", repo_url: "https://kiali.org/helm-charts" }
+        - { repo_name: "prometheus-community", repo_url: "https://prometheus-community.github.io/helm-charts" }
+
+    - name: Update Helm repositories
+      ansible.builtin.shell:
+        cmd: helm repo update
+
+    - name: Install prometheus using Helm
+      ansible.builtin.shell:
+        cmd: helm upgrade --install prometheus prometheus-community/kube-prometheus-stack
+      register: prometheus_install_result
+
+    - name: Install Istio base using Helm
+      ansible.builtin.shell:
+        cmd: helm upgrade --install istio-base istio/base -n istio-system --create-namespace --set defaultRevision=default --wait
+      register: istio_base_install_result
+
+    - name: Install Istiod using Helm
+      ansible.builtin.shell:
+        cmd: helm upgrade --install istiod istio/istiod --values ./configs/istiod.yaml -n istio-system --wait
+      register: istiod_install_result
+
+    - name: Install Istio Ingress Gateway using Helm
+      ansible.builtin.shell:
+        cmd: helm upgrade --install istio-ingressgateway --values ./configs/istio-ingress.yaml istio/gateway -n istio-ingress --create-namespace --wait
+      register: ingress_gateway_install_result
+
+    - name: Install Kiali using Helm
+      ansible.builtin.shell:
+        cmd: helm upgrade --install --values ./configs/kiali.yaml --namespace kiali-operator --create-namespace kiali-operator kiali/kiali-operator
+      register: kiali_install_result
+
+    - name: Apply Tekton Pipeline release using kubectl
+      ansible.builtin.shell:
+        cmd: kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.47.2/release.yaml
+
+    - name: Apply Tekton Triggers release using kubectl
+      ansible.builtin.shell:
+        cmd: kubectl apply -f https://storage.googleapis.com/tekton-releases/triggers/previous/v0.24.1/release.yaml
+
+    - name: Apply Tekton Interceptors release using kubectl
+      ansible.builtin.shell:
+        cmd: kubectl apply -f https://storage.googleapis.com/tekton-releases/triggers/previous/v0.24.1/interceptors.yaml
+
+    - name: Apply Tekton Dashboard release using kubectl
+      ansible.builtin.shell:
+        cmd: kubectl apply -f https://storage.googleapis.com/tekton-releases/dashboard/previous/v0.36.1/release-full.yaml
+
+    - name: Apply cert-manager CRDs using kubectl
+      ansible.builtin.shell:
+        cmd: kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.0/cert-manager.crds.yaml
+
+    - name: Apply Cloud Native Postgres (CNPG) release using kubectl
+      ansible.builtin.shell:
+        cmd: kubectl apply -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.20/releases/cnpg-1.20.3.yaml
+
+    - name: Create namespace 'keycloak' using kubectl
+      ansible.builtin.shell:
+        cmd: kubectl create ns keycloak
+
+    - name: Label namespace 'keycloak' with istio-injection using kubectl
+      ansible.builtin.shell:
+        cmd: kubectl label namespace keycloak istio-injection=enabled --overwrite
+
+    - name: Apply Keycloak resources using kubectl
+      ansible.builtin.shell:
+        cmd: kubectl apply -f {{ item }}
+      loop:
+        - "https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/23.0.1/kubernetes/keycloaks.k8s.keycloak.org-v1.yml"
+        - "https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/23.0.1/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml"
+        - "https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/23.0.1/kubernetes/kubernetes.yml"
