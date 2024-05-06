@@ -39,7 +39,7 @@ To spin up the environment please run the script create.sh from the project root
  
 - Include a link to a Git repository containing your script or send the files as reponse to the email.
 
-
+[link here ](https://github.com/Ghoshaya1/AIDevOps)
 
 2. GPU Access from Kubernetes Pods:
 
